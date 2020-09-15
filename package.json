@@ -20,6 +20,7 @@
     "watch": "rollup -wc",
     "test": "npm run lint",
     "lint": "standard && tsc",
+    "prepare": "npm run clean && npm run dist && npm run types",
     "preversion": "npm run clean && npm run lint && npm run dist && npm run types"
   },
   "bin": {
