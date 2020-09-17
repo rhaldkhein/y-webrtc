@@ -7,7 +7,7 @@ import * as decoding from 'lib0/decoding.js'
 import { Observable } from 'lib0/observable.js'
 import * as logging from 'lib0/logging.js'
 import * as promise from 'lib0/promise.js'
-import * as bc from './lib/broadcastchannel.js'
+// import * as bc from 'lib0/broadcastchannel.js'
 import * as buffer from 'lib0/buffer.js'
 import * as math from 'lib0/math.js'
 import { createMutex } from 'lib0/mutex.js'
@@ -148,7 +148,7 @@ const sendWebrtcConn = (webrtcConn, encoder) => {
   log('send message to ', logging.BOLD, webrtcConn.remotePeerId, logging.UNBOLD, logging.GREY, ' (', webrtcConn.room.name, ')', logging.UNCOLOR)
   try {
     webrtcConn.peer.send(encoding.toUint8Array(encoder))
-  } catch (e) {}
+  } catch (e) { }
 }
 
 /**
@@ -160,7 +160,7 @@ const broadcastWebrtcConn = (room, m) => {
   room.webrtcConns.forEach(conn => {
     try {
       conn.peer.send(m)
-    } catch (e) {}
+    } catch (e) { }
   })
 }
 
@@ -171,7 +171,7 @@ export class WebrtcConn {
    * @param {string} remotePeerId
    * @param {Room} room
    */
-  constructor (signalingConn, initiator, remotePeerId, room) {
+  constructor(signalingConn, initiator, remotePeerId, room) {
     log('establishing connection to ', logging.BOLD, remotePeerId)
     this.room = room
     this.remotePeerId = remotePeerId
@@ -236,7 +236,7 @@ export class WebrtcConn {
     })
   }
 
-  destroy () {
+  destroy() {
     this.peer.destroy()
   }
 }
@@ -247,7 +247,8 @@ export class WebrtcConn {
  */
 const broadcastBcMessage = (room, m) => cryptoutils.encrypt(m, room.key).then(data =>
   room.mux(() =>
-    bc.publish(room.name, data)
+    // bc.publish(room.name, data)
+    undefined
   )
 )
 
@@ -298,7 +299,7 @@ export class Room {
    * @param {string} name
    * @param {CryptoKey|null} key
    */
-  constructor (doc, provider, name, key) {
+  constructor(doc, provider, name, key) {
     /**
      * Do not assume that peerId is unique. This is only meant for sending signaling messages.
      *
@@ -331,7 +332,7 @@ export class Room {
     this._bcSubscriber = data =>
       cryptoutils.decrypt(new Uint8Array(data), key).then(m =>
         this.mux(() => {
-          const reply = readMessage(this, m, () => {})
+          const reply = readMessage(this, m, () => { })
           if (reply) {
             broadcastBcMessage(this, encoding.toUint8Array(reply))
           }
@@ -373,11 +374,11 @@ export class Room {
     })
   }
 
-  connect () {
+  connect() {
     // signal through all available signaling connections
     announceSignalingInfo(this)
     const roomName = this.name
-    bc.subscribe(roomName, this._bcSubscriber)
+    // bc.subscribe(roomName, this._bcSubscriber)
     this.bcconnected = true
     // broadcast peerId via broadcastchannel
     broadcastBcPeerId(this)
@@ -402,7 +403,7 @@ export class Room {
     broadcastBcMessage(this, encoding.toUint8Array(encoderAwarenessState))
   }
 
-  disconnect () {
+  disconnect() {
     // signal through all available signaling connections
     signalingConns.forEach(conn => {
       if (conn.connected) {
@@ -417,14 +418,14 @@ export class Room {
     encoding.writeVarString(encoderPeerIdBc, this.peerId)
     broadcastBcMessage(this, encoding.toUint8Array(encoderPeerIdBc))
 
-    bc.unsubscribe(this.name, this._bcSubscriber)
+    // bc.unsubscribe(this.name, this._bcSubscriber)
     this.bcconnected = false
     this.doc.off('update', this._docUpdateHandler)
     this.awareness.off('update', this._awarenessUpdateHandler)
     this.webrtcConns.forEach(conn => conn.destroy())
   }
 
-  destroy () {
+  destroy() {
     this.disconnect()
   }
 }
@@ -442,7 +443,7 @@ const openRoom = (doc, provider, name, key) => {
     throw error.create(`A Yjs Doc connected to room "${name}" already exists!`)
   }
   const room = new Room(doc, provider, name, key)
-  rooms.set(name, /** @type {Room} */ (room))
+  rooms.set(name, /** @type {Room} */(room))
   return room
 }
 
@@ -462,7 +463,7 @@ const publishSignalingMessage = (conn, room, data) => {
 }
 
 export class SignalingConn extends ws.WebsocketClient {
-  constructor (url) {
+  constructor(url) {
     super(url)
     /**
      * @type {Set<WebrtcProvider>}
@@ -491,7 +492,7 @@ export class SignalingConn extends ws.WebsocketClient {
               // ignore messages that are not addressed to this conn, or from clients that are connected via broadcastchannel
               return
             }
-            const emitPeerChange = webrtcConns.has(data.from) ? () => {} : () =>
+            const emitPeerChange = webrtcConns.has(data.from) ? () => { } : () =>
               room.provider.emit('peers', [{
                 removed: [],
                 added: [data.from],
@@ -542,7 +543,7 @@ export class WebrtcProvider extends Observable {
    * @param {boolean} [opts.filterBcConns]
    * @param {any} [opts.peerOpts]
    */
-  constructor (
+  constructor(
     roomName,
     doc,
     {
@@ -589,11 +590,11 @@ export class WebrtcProvider extends Observable {
   /**
    * @type {boolean}
    */
-  get connected () {
+  get connected() {
     return this.room !== null && this.shouldConnect
   }
 
-  connect () {
+  connect() {
     this.shouldConnect = true
     this.signalingUrls.forEach(url => {
       const signalingConn = map.setIfUndefined(signalingConns, url, () => new SignalingConn(url))
@@ -605,7 +606,7 @@ export class WebrtcProvider extends Observable {
     }
   }
 
-  disconnect () {
+  disconnect() {
     this.shouldConnect = false
     this.signalingConns.forEach(conn => {
       conn.providers.delete(this)
@@ -619,7 +620,7 @@ export class WebrtcProvider extends Observable {
     }
   }
 
-  destroy () {
+  destroy() {
     // need to wait for key before deleting room
     this.key.then(() => {
       /** @type {Room} */ (this.room).destroy()
