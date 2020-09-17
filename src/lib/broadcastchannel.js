@@ -17,7 +17,7 @@
 
 // @todo before next major: use Uint8Array instead as buffer object
 
-import * as map from 'lib0/map'
+import * as map from 'lib0/map.js'
 import { BroadcastChannel } from 'broadcast-channel'
 
 /**
