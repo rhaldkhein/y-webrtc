@@ -17,9 +17,9 @@
 
 // @todo before next major: use Uint8Array instead as buffer object
 
-import * as map from './map.js'
-import * as buffer from './buffer.js'
-import * as storage from './storage.js'
+import * as map from 'lib0/map.js'
+import * as buffer from 'lib0/buffer.js'
+import * as storage from 'lib0/storage.js'
 
 /**
  * @typedef {Object} Channel
