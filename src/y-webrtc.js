@@ -18,7 +18,7 @@ import Peer from 'simple-peer/simplepeer.min.js'
 import * as syncProtocol from 'y-protocols/sync.js'
 import * as awarenessProtocol from 'y-protocols/awareness.js'
 
-import * as cryptoutils from './crypto.js'
+// import * as cryptoutils from './crypto.js'
 
 const log = logging.createModuleLogger('y-webrtc')
 
@@ -401,9 +401,9 @@ const openRoom = (doc, provider, name, key) => {
  */
 const publishSignalingMessage = (conn, room, data) => {
   if (room.key) {
-    cryptoutils.encryptJson(data, room.key).then(data => {
-      conn.send({ type: 'publish', topic: room.name, data: buffer.toBase64(data) })
-    })
+    // cryptoutils.encryptJson(data, room.key).then(data => {
+    //   conn.send({ type: 'publish', topic: room.name, data: buffer.toBase64(data) })
+    // })
   } else {
     conn.send({ type: 'publish', topic: room.name, data })
   }
@@ -463,7 +463,7 @@ export class SignalingConn extends ws.WebsocketClient {
           }
           if (room.key) {
             if (typeof m.data === 'string') {
-              cryptoutils.decryptJson(buffer.fromBase64(m.data), room.key).then(execMessage)
+              // cryptoutils.decryptJson(buffer.fromBase64(m.data), room.key).then(execMessage)
             }
           } else {
             execMessage(m.data)
@@ -518,7 +518,8 @@ export class WebrtcProvider extends Observable {
     /**
      * @type {PromiseLike<CryptoKey | null>}
      */
-    this.key = password ? cryptoutils.deriveKey(password, roomName) : /** @type {PromiseLike<null>} */ (promise.resolve(null))
+    this.key = /** @type {PromiseLike<null>} */ (promise.resolve(null))
+    // this.key = password ? cryptoutils.deriveKey(password, roomName) : /** @type {PromiseLike<null>} */ (promise.resolve(null))
     /**
      * @type {Room|null}
      */
