@@ -7,7 +7,6 @@ import * as decoding from 'lib0/decoding.js'
 import { Observable } from 'lib0/observable.js'
 import * as logging from 'lib0/logging.js'
 import * as promise from 'lib0/promise.js'
-// import * as bc from 'lib0/broadcastchannel.js'
 import * as buffer from 'lib0/buffer.js'
 import * as math from 'lib0/math.js'
 import { createMutex } from 'lib0/mutex.js'
@@ -110,7 +109,6 @@ const readMessage = (room, buf, syncedCallback) => {
           webrtcPeers: Array.from(room.webrtcConns.keys()),
           bcPeers: Array.from(room.bcConns)
         }])
-        broadcastBcPeerId(room)
       }
       break
     }
@@ -245,21 +243,7 @@ export class WebrtcConn {
  * @param {Room} room
  * @param {Uint8Array} m
  */
-const broadcastBcMessage = (room, m) => cryptoutils.encrypt(m, room.key).then(data =>
-  room.mux(() =>
-    // bc.publish(room.name, data)
-    undefined
-  )
-)
-
-/**
- * @param {Room} room
- * @param {Uint8Array} m
- */
 const broadcastRoomMessage = (room, m) => {
-  if (room.bcconnected) {
-    broadcastBcMessage(room, m)
-  }
   broadcastWebrtcConn(room, m)
 }
 
@@ -276,20 +260,6 @@ const announceSignalingInfo = room => {
       }
     }
   })
-}
-
-/**
- * @param {Room} room
- */
-const broadcastBcPeerId = room => {
-  if (room.provider.filterBcConns) {
-    // broadcast peerId via broadcastchannel
-    const encoderPeerIdBc = encoding.createEncoder()
-    encoding.writeVarUint(encoderPeerIdBc, messageBcPeerId)
-    encoding.writeUint8(encoderPeerIdBc, 1)
-    encoding.writeVarString(encoderPeerIdBc, room.peerId)
-    broadcastBcMessage(room, encoding.toUint8Array(encoderPeerIdBc))
-  }
 }
 
 export class Room {
@@ -326,18 +296,6 @@ export class Room {
     this.bcConns = new Set()
     this.mux = createMutex()
     this.bcconnected = false
-    /**
-     * @param {ArrayBuffer} data
-     */
-    this._bcSubscriber = data =>
-      cryptoutils.decrypt(new Uint8Array(data), key).then(m =>
-        this.mux(() => {
-          const reply = readMessage(this, m, () => { })
-          if (reply) {
-            broadcastBcMessage(this, encoding.toUint8Array(reply))
-          }
-        })
-      )
     /**
      * Listens to Yjs updates and sends them to remote peers
      *
@@ -377,30 +335,21 @@ export class Room {
   connect() {
     // signal through all available signaling connections
     announceSignalingInfo(this)
-    const roomName = this.name
-    // bc.subscribe(roomName, this._bcSubscriber)
-    this.bcconnected = true
-    // broadcast peerId via broadcastchannel
-    broadcastBcPeerId(this)
     // write sync step 1
     const encoderSync = encoding.createEncoder()
     encoding.writeVarUint(encoderSync, messageSync)
     syncProtocol.writeSyncStep1(encoderSync, this.doc)
-    broadcastBcMessage(this, encoding.toUint8Array(encoderSync))
     // broadcast local state
     const encoderState = encoding.createEncoder()
     encoding.writeVarUint(encoderState, messageSync)
     syncProtocol.writeSyncStep2(encoderState, this.doc)
-    broadcastBcMessage(this, encoding.toUint8Array(encoderState))
     // write queryAwareness
     const encoderAwarenessQuery = encoding.createEncoder()
     encoding.writeVarUint(encoderAwarenessQuery, messageQueryAwareness)
-    broadcastBcMessage(this, encoding.toUint8Array(encoderAwarenessQuery))
     // broadcast local awareness state
     const encoderAwarenessState = encoding.createEncoder()
     encoding.writeVarUint(encoderAwarenessState, messageAwareness)
     encoding.writeVarUint8Array(encoderAwarenessState, awarenessProtocol.encodeAwarenessUpdate(this.awareness, [this.doc.clientID]))
-    broadcastBcMessage(this, encoding.toUint8Array(encoderAwarenessState))
   }
 
   disconnect() {
@@ -416,9 +365,7 @@ export class Room {
     encoding.writeVarUint(encoderPeerIdBc, messageBcPeerId)
     encoding.writeUint8(encoderPeerIdBc, 0) // remove peerId from other bc peers
     encoding.writeVarString(encoderPeerIdBc, this.peerId)
-    broadcastBcMessage(this, encoding.toUint8Array(encoderPeerIdBc))
 
-    // bc.unsubscribe(this.name, this._bcSubscriber)
     this.bcconnected = false
     this.doc.off('update', this._docUpdateHandler)
     this.awareness.off('update', this._awarenessUpdateHandler)
