@@ -7,7 +7,7 @@ import * as decoding from 'lib0/decoding.js'
 import { Observable } from 'lib0/observable.js'
 import * as logging from 'lib0/logging.js'
 import * as promise from 'lib0/promise.js'
-// import * as bc from './lib/broadcastchannel.js'
+import * as bc from './lib/broadcastchannel.js'
 import * as buffer from 'lib0/buffer.js'
 import * as math from 'lib0/math.js'
 import { createMutex } from 'lib0/mutex.js'
@@ -247,8 +247,7 @@ export class WebrtcConn {
  */
 const broadcastBcMessage = (room, m) => cryptoutils.encrypt(m, room.key).then(data =>
   room.mux(() =>
-    // bc.publish(room.name, data)
-    undefined
+    bc.publish(room.name, data)
   )
 )
 
@@ -378,7 +377,7 @@ export class Room {
     // signal through all available signaling connections
     announceSignalingInfo(this)
     const roomName = this.name
-    // bc.subscribe(roomName, this._bcSubscriber)
+    bc.subscribe(roomName, this._bcSubscriber)
     this.bcconnected = true
     // broadcast peerId via broadcastchannel
     broadcastBcPeerId(this)
@@ -418,7 +417,7 @@ export class Room {
     encoding.writeVarString(encoderPeerIdBc, this.peerId)
     broadcastBcMessage(this, encoding.toUint8Array(encoderPeerIdBc))
 
-    // bc.unsubscribe(this.name, this._bcSubscriber)
+    bc.unsubscribe(this.name, this._bcSubscriber)
     this.bcconnected = false
     this.doc.off('update', this._docUpdateHandler)
     this.awareness.off('update', this._awarenessUpdateHandler)

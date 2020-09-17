@@ -17,8 +17,9 @@
 
 // @todo before next major: use Uint8Array instead as buffer object
 
-import * as map from 'lib0/map.js'
-import { BroadcastChannel } from 'broadcast-channel'
+import * as map from './map.js'
+import * as buffer from './buffer.js'
+import * as storage from './storage.js'
 
 /**
  * @typedef {Object} Channel
@@ -31,7 +32,29 @@ import { BroadcastChannel } from 'broadcast-channel'
  */
 const channels = new Map()
 
-const BC = BroadcastChannel
+class LocalStoragePolyfill {
+  /**
+   * @param {string} room
+   */
+  constructor(room) {
+    this.room = room
+    /**
+     * @type {null|function({data:ArrayBuffer}):void}
+     */
+    this.onmessage = null
+    // addEventListener('storage', e => e.key === room && this.onmessage !== null && this.onmessage({ data: buffer.fromBase64(e.newValue || '') }))
+  }
+
+  /**
+   * @param {ArrayBuffer} buf
+   */
+  postMessage(buf) {
+    storage.varStorage.setItem(this.room, buffer.toBase64(buffer.createUint8ArrayFromArrayBuffer(buf)))
+  }
+}
+
+// Use BroadcastChannel or Polyfill
+const BC = typeof BroadcastChannel === 'undefined' ? LocalStoragePolyfill : BroadcastChannel
 
 /**
  * @param {string} room
@@ -40,7 +63,7 @@ const BC = BroadcastChannel
 const getChannel = room =>
   map.setIfUndefined(channels, room, () => {
     const subs = new Set()
-    const bc = new BC(room, { type: 'node', webWorkerSupport: false })
+    const bc = new BC(room)
     /**
      * @param {{data:ArrayBuffer}} e
      */
