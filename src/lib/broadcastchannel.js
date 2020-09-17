@@ -40,7 +40,7 @@ const BC = BroadcastChannel
 const getChannel = room =>
   map.setIfUndefined(channels, room, () => {
     const subs = new Set()
-    const bc = new BC(room)
+    const bc = new BC(room, { type: 'node', webWorkerSupport: false })
     /**
      * @param {{data:ArrayBuffer}} e
      */
