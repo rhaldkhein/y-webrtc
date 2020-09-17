@@ -11,6 +11,7 @@ import * as bc from './lib/broadcastchannel.js'
 import * as buffer from 'lib0/buffer.js'
 import * as math from 'lib0/math.js'
 import { createMutex } from 'lib0/mutex.js'
+import unload from 'unload'
 
 import * as Y from 'yjs' // eslint-disable-line
 import Peer from 'simple-peer/simplepeer.min.js'
@@ -363,7 +364,8 @@ export class Room {
     }
     this.doc.on('update', this._docUpdateHandler)
     this.awareness.on('update', this._awarenessUpdateHandler)
-    window.addEventListener('beforeunload', () => {
+
+    unload.add(() => {
       awarenessProtocol.removeAwarenessStates(this.awareness, [doc.clientID], 'window unload')
       rooms.forEach(room => {
         room.disconnect()

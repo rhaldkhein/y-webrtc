@@ -54,6 +54,7 @@
     "broadcast-channel": "^3.2.0",
     "lib0": "^0.2.32",
     "simple-peer": "^9.7.2",
+    "unload": "^2.2.0",
     "y-protocols": "^1.0.0"
   },
   "devDependencies": {
